@@ -1,0 +1,42 @@
+#  ODA Canvas on EKS with Istio (via Terraform)
+
+This Terraform setup provisions:
+- An EKS Cluster with IRSA and gp3 storage class (If gp2 already present will make default gp2 to false)
+- Istio (base, istiod, ingress gateway)
+- Cert Manager and AWS Load Balancer Controller
+- ODA Canvas Helm chart deployed after Istio is ready
+
+---
+
+##  Requirements
+
+- Terraform ≥ 1.2
+- AWS CLI installed and configured
+- `kubectl` and `helm` installed
+- IAM user/role with EKS, VPC, IAM, and Helm permissions
+
+---
+
+##  Deployment Steps
+
+```bash
+# Clone your repo
+cd AWS
+
+# Initialize Terraform modules
+terraform init
+
+# Optional to Preview the plan
+terraform plan
+
+# Apply the changes
+terraform apply -auto-approve
+
+# Configure kubectl access
+aws eks --region <aws-region> update-kubeconfig --name oda-canvas-eks
+
+# List deployed helm charts
+helm  list --all-namespaces
+
+# Verify Canvas pods
+kubectl get pods -n canvas

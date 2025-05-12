@@ -1,16 +1,13 @@
 ################################################################################
 # GP3 Encrypted Storage Class
 ################################################################################
-resource "kubernetes_annotations" "gp2_default" {
-  annotations = {
-    "storageclass.kubernetes.io/is-default-class" : "false"
+
+resource "null_resource" "patch_gp2_default" {
+  provisioner "local-exec" {
+    command = <<EOT
+    kubectl patch storageclass gp2 -p '{"metadata": {"annotations": {"storageclass.kubernetes.io/is-default-class": "false"}}}' || true
+    EOT
   }
-  api_version = "storage.k8s.io/v1"
-  kind        = "StorageClass"
-  metadata {
-    name = "gp2"
-  }
-  force = true
 
   depends_on = [module.eks]
 }
@@ -33,7 +30,7 @@ resource "kubernetes_storage_class" "ebs_csi_encrypted_gp3_storage_class" {
     type      = "gp3"
   }
 
-  depends_on = [kubernetes_annotations.gp2_default]
+  depends_on = [kubernetes_annotations.patch_gp2_default]
 }
 
 ################################################################################
@@ -129,6 +126,7 @@ module "eks_blueprints_addons" {
       repository    = local.istio_chart_url
       name          = "istio-base"
       namespace     = kubernetes_namespace_v1.istio_system.metadata[0].name
+      create_namespace = false
     }
 
     istiod = {
@@ -137,6 +135,7 @@ module "eks_blueprints_addons" {
       repository    = local.istio_chart_url
       name          = "istiod"
       namespace     = kubernetes_namespace_v1.istio_system.metadata[0].name
+      create_namespace = false
       set = [
         {
           name  = "meshConfig.accessLogFile"
@@ -151,6 +150,7 @@ module "eks_blueprints_addons" {
       repository    = local.istio_chart_url
       name          = "istio-ingress"
       namespace     = kubernetes_namespace_v1.istio-ingress.metadata[0].name
+      create_namespace = false
       values = [
         yamlencode(
           {
@@ -173,4 +173,34 @@ module "eks_blueprints_addons" {
   }
 
   tags = local.tags
+}
+
+################################################################################
+# Canvas Installation after all pre-requisites
+################################################################################
+
+# Canvas Namespace
+resource "kubernetes_namespace_v1" "canvas" {
+  metadata {
+    name = "canvas"
+  }
+}
+
+# Canvas Helm Chart Installation
+resource "helm_release" "canvas" {
+  name       = "canvas"
+  chart      = "canvas-oda"
+  repository = var.canvas_chart_repo
+  namespace  = kubernetes_namespace_v1.canvas.metadata[0].name
+
+  create_namespace = false
+
+  set {
+    name  = "canvas-vault.enabled"
+    value = false
+  }
+
+  depends_on = [
+    module.eks_blueprints_addons
+  ]
 }
