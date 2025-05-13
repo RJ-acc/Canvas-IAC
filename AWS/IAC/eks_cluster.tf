@@ -21,9 +21,9 @@ module "eks" {
 
     node_group = {
       name         = var.cluster_name
-      min_size     = 1
-      max_size     = 2
-      desired_size = 1
+      min_size     = 2
+      max_size     = 4
+      desired_size = 2
 
     tags = {
         Name = "aws-canvas-nodes"
