@@ -1,5 +1,3 @@
-data "aws_availability_zones" "available" {}
-
 # changed VPC for EKS to user variables
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
