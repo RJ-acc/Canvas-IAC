@@ -4,20 +4,11 @@ provider "aws" {
 
 data "aws_availability_zones" "available" {}
 
-locals {
-  cluster_name = "telco-demo1-${random_string.suffix.result}"
-}
-
-resource "random_string" "suffix" {
-  length  = 8
-  special = false
-}
-
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "5.21.0"
 
-  name                 = "telco-eks-vpc2"
+  name                 = "oda-canvas-vpc"
   cidr                 = var.vpc_cidr
   azs                  = data.aws_availability_zones.available.names
   private_subnets      = ["10.0.1.0/24", "10.0.2.0/24"]
