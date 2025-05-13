@@ -5,10 +5,10 @@
 resource "null_resource" "patch_gp2_default" {
   provisioner "local-exec" {
     command = <<EOT
-    kubectl patch storageclass gp2 -p '{"metadata": {"annotations": {"storageclass.kubernetes.io/is-default-class": "false"}}}' || true
+    kubectl patch storageclass gp2 \
+      -p '{"metadata": {"annotations": {"storageclass.kubernetes.io/is-default-class": "false"}}}' || true
     EOT
   }
-
   depends_on = [module.eks]
 }
 
@@ -30,7 +30,7 @@ resource "kubernetes_storage_class" "ebs_csi_encrypted_gp3_storage_class" {
     type      = "gp3"
   }
 
-  depends_on = [null_resources.patch_gp2_default]
+  depends_on = [null_resource.patch_gp2_default]
 }
 
 ################################################################################
