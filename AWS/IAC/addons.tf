@@ -103,7 +103,7 @@ module "eks_blueprints_addons" {
   #---------------------------------------
   # Cert Manager
   #---------------------------------------
-  enable_cert_manager = true
+  enable_cert_manager = false
   cert_manager = {
     chart_version    = "v1.15.3"
     namespace        = "cert-manager"
