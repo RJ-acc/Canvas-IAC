@@ -26,3 +26,15 @@ variable "gateway_type" {
     error_message = "gateway_type must be any one of istio, apisix or kong."
   }
 }
+
+variable "istio_chart_version" {
+  description = "Istio Helm Chart version , checked on 12 May 2025"
+  default     = "1.26.0"
+  type        = string
+}
+
+variable "canvas_chart_repo" {
+  description = "Canvas  Chart Repo , not hardcoded as separate repo for testing can be used"
+  default     = "https://tmforum-oda.github.io/oda-canvas"
+  type        = string
+}
