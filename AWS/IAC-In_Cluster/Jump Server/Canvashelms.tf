@@ -1,3 +1,8 @@
+locals {
+  istio_chart_url     = "https://istio-release.storage.googleapis.com/charts"
+  istio_chart_version = var.istio_chart_version
+  oda_canvas_chart_url = "https://tmforum-oda.github.io/oda-canvas"
+}
 ################################################################################
 # GP3 Encrypted Storage Class
 ################################################################################
