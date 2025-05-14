@@ -11,7 +11,7 @@ resource "null_resource" "patch_gp2_default" {
         -p '{"metadata":{"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}' || true
     EOT
   }
-  depends_on = [module.eks]
+  depends_on = [data.aws_eks_cluster.this]
 }
 
 resource "kubernetes_storage_class" "gp3_encrypted" {
@@ -43,12 +43,10 @@ resource "kubernetes_namespace_v1" "istio_system" {
   }
 }
 
-resource "kubernetes_namespace_v1" "istio-ingress" {
+resource "kubernetes_namespace_v1" "istio_ingress" {
   metadata {
-    labels = {
-      istio-injection = "enabled"
-    }
-    name = "istio-ingress" # per https://github.com/istio/istio/blob/master/manifests/charts/gateways/istio-ingress/values.yaml#L2
+    name   = "istio-ingress"          
+    labels = { istio-injection = "enabled" }
   }
 }
 
@@ -64,11 +62,10 @@ module "eks_blueprints_addons" {
   #
   # Mandatory wiring back to your cluster/VPC modules
   #
-  cluster_name              = module.eks.cluster_name
-  cluster_endpoint          = module.eks.cluster_endpoint
-  cluster_version           = module.eks.cluster_version
-  oidc_provider_arn         = module.eks.oidc_provider_arn
-
+  cluster_name              = data.aws_eks_cluster.this.name
+  cluster_endpoint          = data.aws_eks_cluster.this.endpoint
+  cluster_version           = data.aws_eks_cluster.this.version
+  oidc_provider_arn         = data.aws_eks_cluster_auth.this.oidc_provider_arn
   #
   #  Add-on toggles / parameters
   #
