@@ -37,7 +37,7 @@ module "eks_blueprints_addons" {
     vpc-cni     = { most_recent = true }
     kube-proxy  = { most_recent = true }
   }
-
+}
 
 ################################################################################
 # Export everything for the second workspace 
