@@ -5,22 +5,19 @@
 resource "null_resource" "patch_gp2_default" {
   provisioner "local-exec" {
     command = <<EOT
-    echo "Patching gp2 StorageClass (if it exists)…"
-    kubectl patch storageclass gp2 \
-      --type merge \
-      -p '{"metadata":{"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}' || true
+      echo "Patching gp2 StorageClass (if it exists)…"
+      kubectl patch storageclass gp2 \
+        --type merge \
+        -p '{"metadata":{"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}' || true
     EOT
   }
   depends_on = [module.eks]
 }
 
-
-resource "kubernetes_storage_class" "ebs_csi_encrypted_gp3_storage_class" {
+resource "kubernetes_storage_class" "gp3_encrypted" {
   metadata {
     name = "gp3"
-    annotations = {
-      "storageclass.kubernetes.io/is-default-class" : "true"
-    }
+    annotations = { "storageclass.kubernetes.io/is-default-class" = "true" }
   }
 
   storage_provisioner    = "ebs.csi.aws.com"
@@ -29,7 +26,7 @@ resource "kubernetes_storage_class" "ebs_csi_encrypted_gp3_storage_class" {
   volume_binding_mode    = "WaitForFirstConsumer"
   parameters = {
     fsType    = "xfs"
-    encrypted = true
+    encrypted = "true"
     type      = "gp3"
   }
 
@@ -56,79 +53,97 @@ resource "kubernetes_namespace_v1" "istio-ingress" {
 }
 
 
-  #---------------------------------------
-  # Cert Manager
-  #---------------------------------------
-  enable_cert_manager = false
+
+################################################################################
+# ❶  Namespaces required by Istio
+################################################################################
+resource "kubernetes_namespace_v1" "istio_system" {
+  metadata { name = "istio-system" }
+}
+
+# NOTE: resource names may not contain hyphens → use istio_ingress
+resource "kubernetes_namespace_v1" "istio_ingress" {
+  metadata {
+    name = "istio-ingress"
+    labels = { istio-injection = "enabled" }
+  }
+}
+
+################################################################################
+# ❷  EKS Blueprints Add-ons  (wrap everything in a module block)
+################################################################################
+module "eks_blueprints_addons" {
+  source  = "aws-ia/eks-blueprints-addons/aws"
+  version = "~> 1.18"                               
+
+  #
+  # Mandatory wiring back to your cluster/VPC modules
+  #
+  cluster_name              = module.eks.cluster_name
+  cluster_endpoint          = module.eks.cluster_endpoint
+  cluster_version           = module.eks.cluster_version
+  cluster_security_group_id = module.eks.cluster_security_group_id
+  oidc_provider_arn         = module.eks.oidc_provider_arn
+  vpc_id                    = module.vpc.vpc_id
+  private_subnet_ids        = module.vpc.private_subnets
+
+  #
+  #  Add-on toggles / parameters
+  #
+  enable_cert_manager = false                       # each matches a real input var :contentReference[oaicite:1]{index=1}
   cert_manager = {
     chart_version    = "v1.15.3"
     namespace        = "cert-manager"
     create_namespace = true
   }
 
-  #---------------------------------------
-  # AWS Load Balancer Controller
-  #---------------------------------------
   enable_aws_load_balancer_controller = true
 
-  #---------------------------------------
-  # Istio OSS & ODA Canvas Framework
-  #---------------------------------------
+  # Helm charts you want the module to install for you
   helm_releases = {
 
     istio-base = {
-      chart         = "base"
-      chart_version = local.istio_chart_version
-      repository    = local.istio_chart_url
-      name          = "istio-base"
-      namespace     = kubernetes_namespace_v1.istio_system.metadata[0].name
+      chart            = "base"
+      chart_version    = local.istio_chart_version
+      repository       = local.istio_chart_url
+      name             = "istio-base"
+      namespace        = kubernetes_namespace_v1.istio_system.metadata[0].name
       create_namespace = false
     }
 
     istiod = {
-      chart         = "istiod"
-      chart_version = local.istio_chart_version
-      repository    = local.istio_chart_url
-      name          = "istiod"
-      namespace     = kubernetes_namespace_v1.istio_system.metadata[0].name
+      chart            = "istiod"
+      chart_version    = local.istio_chart_version
+      repository       = local.istio_chart_url
+      name             = "istiod"
+      namespace        = kubernetes_namespace_v1.istio_system.metadata[0].name
       create_namespace = false
-      set = [
-        {
-          name  = "meshConfig.accessLogFile"
-          value = "/dev/stdout"
-        }
-      ]
+      set = [{
+        name  = "meshConfig.accessLogFile"
+        value = "/dev/stdout"
+      }]
     }
 
     istio-ingress = {
-      chart         = "gateway"
-      chart_version = local.istio_chart_version
-      repository    = local.istio_chart_url
-      name          = "istio-ingress"
-      namespace     = kubernetes_namespace_v1.istio-ingress.metadata[0].name
+      chart            = "gateway"
+      chart_version    = local.istio_chart_version
+      repository       = local.istio_chart_url
+      name             = "istio-ingress"
+      namespace        = kubernetes_namespace_v1.istio_ingress.metadata[0].name
       create_namespace = false
-      values = [
-        yamlencode(
-          {
-            labels = {
-              istio = "ingressgateway"
-              app   = "istio-ingress"
-            }
-            service = {
-              type = "LoadBalancer"
-              annotations = {
-                "service.beta.kubernetes.io/aws-load-balancer-internal"   = "true"
-                "service.beta.kubernetes.io/aws-load-balancer-attributes" = "load_balancing.cross_zone.enabled=true"
-              }
-            }
+      values = [yamlencode({
+        labels   = { istio = "ingressgateway", app = "istio-ingress" }
+        service  = {
+          type        = "LoadBalancer"
+          annotations = {
+            "service.beta.kubernetes.io/aws-load-balancer-internal"   = "true"
+            "service.beta.kubernetes.io/aws-load-balancer-attributes" = "load_balancing.cross_zone.enabled=true"
           }
-        )
-      ]
+        }
+      })]
     }
-
   }
 
-  tags = local.tags
 }
 
 ################################################################################
