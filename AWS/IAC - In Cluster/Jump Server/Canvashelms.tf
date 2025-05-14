@@ -142,18 +142,42 @@ resource "kubernetes_namespace_v1" "canvas" {
   }
 }
 
+
+# Locals for canvas  helm  chart 
+locals {
+  enable_istio  = var.gateway_type == "istio"
+  enable_apisix = var.gateway_type == "apisix"
+  enable_kong   = var.gateway_type == "kong"
+}
+
 # Canvas Helm Chart Installation
 resource "helm_release" "canvas" {
   name       = "canvas"
   chart      = "canvas-oda"
   repository = var.canvas_chart_repo
   namespace  = kubernetes_namespace_v1.canvas.metadata[0].name
-
   create_namespace = false
 
+  # canvas-vault
   set {
     name  = "canvas-vault.enabled"
-    value = false
+    value = var.canvas_vault_enabled ? "true" : "false"
+  }
+
+  # For Gateways – only ONE will evaluate to "true"
+  set {
+    name  = "api-operator-istio.enabled"
+    value = local.enable_istio ? "true" : "false"
+  }
+
+  set {
+    name  = "apisix-gateway-install.enabled"
+    value = local.enable_apisix ? "true" : "false"
+  }
+
+  set {
+    name  = "kong-gateway-install.enabled"
+    value = local.enable_kong ? "true" : "false"
   }
 
   depends_on = [
