@@ -1,8 +1,6 @@
 ############################################
 # Fetch EKS endpoint, CA bundle and a token
 ############################################
-variable "cluster_name" {}
-variable "aws_region"   {}
 
 provider "aws" {
   region = var.aws_region

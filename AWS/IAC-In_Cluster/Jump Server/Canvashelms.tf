@@ -55,21 +55,6 @@ resource "kubernetes_namespace_v1" "istio-ingress" {
 
 
 ################################################################################
-# ❶  Namespaces required by Istio
-################################################################################
-resource "kubernetes_namespace_v1" "istio_system" {
-  metadata { name = "istio-system" }
-}
-
-# NOTE: resource names may not contain hyphens → use istio_ingress
-resource "kubernetes_namespace_v1" "istio_ingress" {
-  metadata {
-    name = "istio-ingress"
-    labels = { istio-injection = "enabled" }
-  }
-}
-
-################################################################################
 # ❷  EKS Blueprints Add-ons  (wrap everything in a module block)
 ################################################################################
 module "eks_blueprints_addons" {
