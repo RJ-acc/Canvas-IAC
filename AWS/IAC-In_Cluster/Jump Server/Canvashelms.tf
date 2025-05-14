@@ -67,10 +67,7 @@ module "eks_blueprints_addons" {
   cluster_name              = module.eks.cluster_name
   cluster_endpoint          = module.eks.cluster_endpoint
   cluster_version           = module.eks.cluster_version
-  cluster_security_group_id = module.eks.cluster_security_group_id
   oidc_provider_arn         = module.eks.oidc_provider_arn
-  vpc_id                    = module.vpc.vpc_id
-  private_subnet_ids        = module.vpc.private_subnets
 
   #
   #  Add-on toggles / parameters
