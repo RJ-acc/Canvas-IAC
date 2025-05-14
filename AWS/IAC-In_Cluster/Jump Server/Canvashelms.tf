@@ -1,6 +1,6 @@
 locals {
   istio_chart_url     = "https://istio-release.storage.googleapis.com/charts"
-  istio_chart_version = var.istio_chart_version
+  istio_chart_version = "1.22.0"
   oda_canvas_chart_url = "https://tmforum-oda.github.io/oda-canvas"
 }
 ################################################################################
@@ -70,7 +70,7 @@ module "eks_blueprints_addons" {
   cluster_name              = data.aws_eks_cluster.this.name
   cluster_endpoint          = data.aws_eks_cluster.this.endpoint
   cluster_version           = data.aws_eks_cluster.this.version
-  oidc_provider_arn         = data.aws_eks_cluster_auth.this.oidc_provider_arn
+  oidc_provider_arn         = data.aws_eks_cluster.this.identity[0].oidc[0].issuer
   #
   #  Add-on toggles / parameters
   #
