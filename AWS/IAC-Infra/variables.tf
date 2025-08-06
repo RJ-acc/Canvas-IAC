@@ -7,17 +7,17 @@ variable "cluster_name" {
 variable "k8s_version" {
   description = "EKS Cluster version"
   type        = string
-  default     = "1.30"
+  default     = "1.33"
 }
 
 variable "vpc_cidr" {
   description = "VPC CIDR"
   type        = string
-  default     = "10.0.0.0/16"
+  default     = "10.0.0.0/24"
 }
 
 variable "aws_region" {
-  default = "us-east-2"
+  default = "us-east-1"
   description = "aws region"
 }
 
